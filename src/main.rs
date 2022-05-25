@@ -1,21 +1,17 @@
 pub mod task;
 
 use std::{
-    cell::RefCell,
     fs::{self, File},
-    io::{self, BufWriter},
+    io,
     path::Path,
     process::exit,
-    rc::Rc,
-    sync::{Arc, Mutex},
-    thread,
 };
 
 use clap::Parser;
 use indicatif::{MultiProgress, ProgressBar};
 use once_cell::sync::Lazy;
 use reqwest::{header::ACCEPT_RANGES, Client};
-use task::{Range, Task, TaskConfig};
+use task::{Task, TaskConfig};
 use tokio::task::spawn;
 use url::Url;
 
@@ -118,14 +114,6 @@ async fn get_target_info(url: Url) -> Result<TargetInfo, Box<dyn std::error::Err
     }
 }
 
-// #[derive(Clone)]
-// pub struct DownloadConfig {
-//     pub file_name: &'static String,
-//     pub content_length: &'static u64,
-//     pub tasks: &'static Vec<Task>,
-//     pub partial_dir: &'static String,
-// }
-
 #[derive(Clone, Default)]
 pub struct DownloadConfig {
     pub file_name: String,
@@ -134,27 +122,9 @@ pub struct DownloadConfig {
     pub partial_dir: String,
 }
 
-// impl DownloadConfig {
-//     fn new(
-//         file_name: String,
-//         content_length: u64,
-//         tasks: Vec<Task>,
-//         partial_dir: String,
-//     ) -> 'static Self {
-//         let c = DownloadConfig {
-//             file_name,
-//             content_length,
-//             tasks,
-//             partial_dir,
-//         };
-//         return &c;
-//     }
-// }
-
 async fn download_parallel(option: AppArg) -> Result<(), Box<dyn std::error::Error>> {
     let mut tokio_tasks = vec![];
     let mp = MultiProgress::new();
-    // let rc = Arc::new(Mutex::new(mp));
 
     unsafe {
         for c in &CONFIG.tasks {
@@ -212,7 +182,7 @@ fn get_partial_dirname(dir_name: String, file_name: String, procs: u64) -> Strin
         .to_string();
 }
 
-static mut CONFIG: Lazy<DownloadConfig> = Lazy::new(|| DownloadConfig::default());
+static mut CONFIG: Lazy<DownloadConfig> = Lazy::new(DownloadConfig::default);
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -254,15 +224,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let partial_dir = get_partial_dirname("".to_string(), target_info.file_name, proc);
 
-    // let config = DownloadConfig {
-    //     file_name: task_config.file_name.to_string(),
-    //     content_length: target_info.content_length,
-    //     tasks,
-    //     partial_dir,
-    // };
-
-    // let c = config.clone();
-
     unsafe {
         CONFIG.file_name = task_config.file_name;
         CONFIG.content_length = target_info.content_length;
@@ -270,11 +231,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         CONFIG.partial_dir = partial_dir;
     }
 
-    let a = download_parallel(cli).await?;
-
-    // let resp = client.head(url).await?.text().await?;
-
-    // println!("resp: {:?}", resp);
+    download_parallel(cli).await?;
 
     Ok(())
 }

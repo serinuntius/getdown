@@ -1,16 +1,12 @@
 use std::{
-    cell::RefCell,
     error::Error,
     fs::{self, File},
-    io::{self, BufWriter, Read, Write},
+    io::{BufWriter, Read, Write},
     path::Path,
-    rc::Rc,
-    str::from_utf8,
-    sync::{Arc, Mutex},
 };
 
 use futures::StreamExt;
-use indicatif::{MultiProgress, ProgressBar};
+use indicatif::ProgressBar;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     Url,
@@ -52,17 +48,6 @@ pub struct Task {
     pub url: Url,
     pub procs: u64,
     pub file_name: String,
-}
-impl Task {
-    fn default() -> Self {
-        Task {
-            id: 0,
-            range: Range::default(),
-            url: Url::parse("").unwrap(),
-            procs: 0,
-            file_name: "".to_string(),
-        }
-    }
 }
 
 impl Task {
